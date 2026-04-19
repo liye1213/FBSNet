@@ -11,15 +11,12 @@ except Exception:
 
 
 class LearnableFrequencyBandDecomposition(nn.Module):
-    """
-    LL, LH, HL, HH.
-    """
+    
 
     def __init__(self, channels: int, kernel_size: int = 3):
         super().__init__()
         padding = kernel_size // 2
 
-      
         self.low_h = nn.Conv2d(
             channels,
             channels,
@@ -36,8 +33,6 @@ class LearnableFrequencyBandDecomposition(nn.Module):
             groups=channels,
             bias=False,
         )
-
-        
         self.low_v = nn.Conv2d(
             channels,
             channels,
@@ -62,7 +57,6 @@ class LearnableFrequencyBandDecomposition(nn.Module):
             nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
 
     def forward(self, x: torch.Tensor):
-        # Eq. (2) in the paper
         ll = self.low_h(self.low_v(x))
         lh = self.high_h(self.low_v(x))
         hl = self.low_h(self.high_v(x))
@@ -71,9 +65,7 @@ class LearnableFrequencyBandDecomposition(nn.Module):
 
 
 class SelectiveStateSpace2D(nn.Module):
-    """
-    2D selective scan block
-    """
+    
 
     def __init__(
         self,
@@ -244,14 +236,79 @@ class SelectiveStateSpace2D(nn.Module):
         return out
 
 
+class SemanticAlignedScan(nn.Module):
+  
+
+    def __init__(self, band_type: str):
+        super().__init__()
+        assert band_type in {"LL", "LH", "HL", "HH"}
+        self.band_type = band_type
+
+    def _to_tokens(self, x: torch.Tensor):
+        b, c, h, w = x.shape
+
+        if self.band_type == "LL":
+            # raster scan
+            tokens = x.permute(0, 2, 3, 1).contiguous().view(b, h * w, c)
+            meta = (h, w, None)
+
+        elif self.band_type == "LH":
+            # horizontal scan: row-major
+            tokens = x.permute(0, 2, 3, 1).contiguous().view(b, h * w, c)
+            meta = (h, w, None)
+
+        elif self.band_type == "HL":
+            # vertical scan: column-major
+            tokens = x.permute(0, 3, 2, 1).contiguous().view(b, h * w, c)
+            meta = (h, w, None)
+
+        else:
+            # diagonal-style scan: collect anti-diagonals from top-left to bottom-right
+            coords = []
+            for s in range(h + w - 1):
+                for i in range(h):
+                    j = s - i
+                    if 0 <= j < w:
+                        coords.append((i, j))
+            index = torch.tensor([i * w + j for i, j in coords], device=x.device, dtype=torch.long)
+            x_flat = x.permute(0, 2, 3, 1).contiguous().view(b, h * w, c)
+            tokens = x_flat.index_select(1, index)
+            meta = (h, w, index)
+
+        return tokens, meta
+
+    def _from_tokens(self, tokens: torch.Tensor, meta):
+        h, w, index = meta
+        b, _, c = tokens.shape
+
+        if self.band_type in {"LL", "LH"}:
+            x = tokens.view(b, h, w, c).permute(0, 3, 1, 2).contiguous()
+            return x
+
+        if self.band_type == "HL":
+            x = tokens.view(b, w, h, c).permute(0, 3, 2, 1).contiguous()
+            return x
+
+     
+        full = torch.zeros(b, h * w, c, device=tokens.device, dtype=tokens.dtype)
+        full.index_copy_(1, index, tokens)
+        x = full.view(b, h, w, c).permute(0, 3, 1, 2).contiguous()
+        return x
+
+    def forward(self, x: torch.Tensor):
+        tokens, meta = self._to_tokens(x)
+        return tokens, meta
+
+    def inverse(self, tokens: torch.Tensor, meta):
+        return self._from_tokens(tokens, meta)
+
+
 class FrequencyBandSequenceModeling(nn.Module):
-    """
-    Band-wise state space modeling in FBSS.
-    This block takes concatenated band features and models their dependencies.
-    """
+   
 
     def __init__(self, channels: int, expand: int = 2, d_state: int = 16, d_conv: int = 3, dropout: float = 0.0):
         super().__init__()
+        self.channels = channels
         self.norm = nn.LayerNorm(channels)
         self.ssm = SelectiveStateSpace2D(
             d_model=channels,
@@ -261,13 +318,44 @@ class FrequencyBandSequenceModeling(nn.Module):
             dropout=dropout,
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: [B, C, H, W] -> SS2D expects [B, H, W, C]
-        x = x.permute(0, 2, 3, 1).contiguous()
-        x = self.norm(x)
-        x = self.ssm(x)
-        x = x.permute(0, 3, 1, 2).contiguous()
-        return x
+        self.scan_ll = SemanticAlignedScan("LL")
+        self.scan_lh = SemanticAlignedScan("LH")
+        self.scan_hl = SemanticAlignedScan("HL")
+        self.scan_hh = SemanticAlignedScan("HH")
+
+    def _run_ssm_on_tokens(self, tokens: torch.Tensor):
+        b, n, c = tokens.shape
+        tokens = self.norm(tokens)
+        tokens = tokens.view(b, n, 1, c)
+        tokens = self.ssm(tokens)
+        tokens = tokens.view(b, n, c)
+        return tokens
+
+    def forward(self, bands):
+        ll_tokens, ll_meta = self.scan_ll(bands["LL"])
+        lh_tokens, lh_meta = self.scan_lh(bands["LH"])
+        hl_tokens, hl_meta = self.scan_hl(bands["HL"])
+        hh_tokens, hh_meta = self.scan_hh(bands["HH"])
+
+        ordered_sequence = torch.cat([ll_tokens, lh_tokens, hl_tokens, hh_tokens], dim=1)
+        enhanced_sequence = self._run_ssm_on_tokens(ordered_sequence)
+
+        n_ll = ll_tokens.shape[1]
+        n_lh = lh_tokens.shape[1]
+        n_hl = hl_tokens.shape[1]
+        n_hh = hh_tokens.shape[1]
+
+        ll_enh, lh_enh, hl_enh, hh_enh = torch.split(
+            enhanced_sequence,
+            [n_ll, n_lh, n_hl, n_hh],
+            dim=1,
+        )
+
+        ll = self.scan_ll.inverse(ll_enh, ll_meta)
+        lh = self.scan_lh.inverse(lh_enh, lh_meta)
+        hl = self.scan_hl.inverse(hl_enh, hl_meta)
+        hh = self.scan_hh.inverse(hh_enh, hh_meta)
+        return ll, lh, hl, hh
 
 
 class FrequencyBandFusion(nn.Module):
@@ -287,6 +375,7 @@ class FrequencyBandFusion(nn.Module):
 
 
 class FBSS(nn.Module):
+    
 
     def __init__(
         self,
@@ -299,7 +388,7 @@ class FBSS(nn.Module):
     ):
         super().__init__()
         self.lfbd = LearnableFrequencyBandDecomposition(channels, kernel_size=lfbd_kernel_size)
-        self.band_ssm = FrequencyBandSequenceModeling(
+        self.band_sequence_modeling = FrequencyBandSequenceModeling(
             channels=channels,
             expand=expand,
             d_state=d_state,
@@ -310,13 +399,9 @@ class FBSS(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         residual = x
-
         bands = self.lfbd(x)
-        ll = self.band_ssm(bands["LL"])
-        lh = self.band_ssm(bands["LH"])
-        hl = self.band_ssm(bands["HL"])
-        hh = self.band_ssm(bands["HH"])
-
+        ll, lh, hl, hh = self.band_sequence_modeling(bands)
         out = self.fusion(ll, lh, hl, hh)
         return residual + out
+
 
