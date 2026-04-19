@@ -54,9 +54,9 @@ FBSNet/
 │   └── fgrm.py
 ├── assets/
 │   └──  framework.png
-```text
 
-## Acknowledgement
+
+## Repository Structure
 
 This repository is built upon PyTorch and partially follows the engineering organization of the open-source **GeoSeg** project.  
 We thank the GeoSeg authors for making their code publicly available.
@@ -73,5 +73,9 @@ conda activate fbsnet
 pip install torch torchvision timm einops opencv-python
 pip install mamba-ssm
 
+## Acknowledgement
+
+The code organization, as well as parts of the training and testing pipeline, are implemented with reference to the open-source [GeoSeg](https://github.com/WangLibo1995/GeoSeg) project.  
+We sincerely thank the GeoSeg authors for making their code publicly available.
 
 
