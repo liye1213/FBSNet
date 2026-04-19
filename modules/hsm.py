@@ -13,14 +13,14 @@ except Exception as e:
 
 
 def flatten_hw(x: torch.Tensor):
-    """Convert (B, C, H, W) to (B, H*W, C)."""
+    
     b, c, h, w = x.shape
     x_flat = x.view(b, c, h * w).transpose(1, 2)
     return x_flat, (h, w)
 
 
 def unflatten_hw(x_flat: torch.Tensor, hw):
-    """Convert (B, H*W, C) back to (B, C, H, W)."""
+    
     b, hw_tokens, c = x_flat.shape
     h, w = hw
     return x_flat.transpose(1, 2).contiguous().view(b, c, h, w)
