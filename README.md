@@ -20,7 +20,6 @@ Official PyTorch implementation of **FBSNet** for remote sensing semantic segmen
   <img src="assets/framework.pdf" width="900"/>
 </p>
 
-> Put your overall architecture figure here.
 
 ---
 
@@ -58,7 +57,6 @@ Then, band-specific semantic-aligned serialization and state space modeling are 
   <img src="assets/fbss.pdf" width="850"/>
 </p>
 
-> Put your FBSS / frequency-band serialization figure here.
 
 ---
 
@@ -73,7 +71,6 @@ HSM complements the frequency branch by enhancing spatial structural continuity 
   <img src="assets/hsm.pdf" width="700"/>
 </p>
 
-> Put your HSM figure here.
 
 ---
 
@@ -85,7 +82,6 @@ FGRM uses Fourier-domain guidance during decoding to alleviate high-frequency at
   <img src="assets/fgrm.pdf" width="700"/>
 </p>
 
-> Put your FGRM figure here.
 
 ---
 
