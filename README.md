@@ -60,11 +60,7 @@ FBSNet/
 This repository is built upon PyTorch and partially follows the engineering organization of the open-source **GeoSeg** project.  
 We thank the GeoSeg authors for making their code publicly available.
 
-```markdown
 ## Installation
-
-```bash
-# clone repository
 git clone https://github.com/liye1213/FBSNet.git
 cd FBSNet
 
