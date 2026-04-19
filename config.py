@@ -1,11 +1,11 @@
 from torch.utils.data import DataLoader
 from geoseg.losses import *
-from geoseg.datasets.vaihingen_dataset import *
+from geoseg.datasets.dataset import *
 from timm.optim.lookahead import Lookahead
 
 from catalyst import utils
 
-# training hparam
+
 max_epoch = 104
 ignore_index = len(CLASSES)  
 train_batch_size = 8
@@ -35,17 +35,17 @@ resume_ckpt_path = None
 
 
 
-#  define the network
+
 from geoseg.models. import Model
 net = Model(n_class=num_classes)
 
-# define the loss
+
 loss = JointLoss(SoftCrossEntropyLoss(smooth_factor=0.05, ignore_index=ignore_index),
                  DiceLoss(smooth=0.05, ignore_index=ignore_index), 1.0, 1.0)
-use_aux_loss = False          # 打开高频去噪辅助任务
+use_aux_loss = False         
 
 
-# define the dataloader
+
 train_dataset = VaihingenDataset(data_root="data/Vaihingen/train", mode='train',
                                  mosaic_ratio=0.25, transform=train_aug)
 
@@ -98,7 +98,7 @@ def process_model_params(model, layerwise_params=None, base_lr=None, base_weight
     return param_groups
 
 
-# define the optimizer
+
 layerwise_params = {"backbone.*": dict(lr=backbone_lr, weight_decay=backbone_weight_decay)}  
 net_params = process_model_params(net, layerwise_params=layerwise_params,
                                   base_lr=lr, base_weight_decay=weight_decay)
