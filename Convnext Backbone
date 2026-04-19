@@ -13,7 +13,7 @@ MODEL_CONFIGS = {
 
 
 class LayerNorm(nn.Module):
-    """LayerNorm supporting channels_last and channels_first."""
+
 
     def __init__(self, normalized_shape, eps=1e-6, data_format="channels_last"):
         super().__init__()
@@ -37,7 +37,7 @@ class LayerNorm(nn.Module):
 
 
 class ConvNeXtBlock(nn.Module):
-    """Basic ConvNeXt block used in the FBSNet encoder."""
+
 
     def __init__(self, dim, drop_path=0.0, layer_scale_init_value=1e-6):
         super().__init__()
@@ -68,7 +68,7 @@ class ConvNeXtBlock(nn.Module):
 
 
 class ConvNeXtEncoder(nn.Module):
-    """ConvNeXt encoder that outputs 4-stage feature maps for FBSNet."""
+
 
     def __init__(
         self,
@@ -175,8 +175,3 @@ def convnext_base_encoder(pretrained=False, in_22k=False, **kwargs):
     return model
 
 
-# Backward-compatible aliases
-ConvNeXt = ConvNeXtEncoder
-convnext_tiny = convnext_tiny_encoder
-convnext_small = convnext_small_encoder
-convnext_base = convnext_base_encoder
