@@ -39,7 +39,6 @@ The proposed network adopts a **ConvNeXt-based encoder-decoder framework** and i
 - **FGRM**: Fourier-Guided Refinement Module
 
 
-
 ## Repository Structure
 
 ```text
@@ -52,30 +51,26 @@ FBSNet/
 │   ├── fbss.py
 │   ├── hsm.py
 │   └── fgrm.py
-├── assets/
-│   └──  framework.png
+└── assets/
+    └── framework.png
 
 
-## Repository Structure
-
-This repository is built upon PyTorch and partially follows the engineering organization of the open-source **GeoSeg** project.  
-We thank the GeoSeg authors for making their code publicly available.
 
 ## Installation
 git clone https://github.com/liye1213/FBSNet.git
 cd FBSNet
 
-# create environment
+## create environment
 conda create -n fbsnet python=3.10 -y
 conda activate fbsnet
 
-# install dependencies
+## install dependencies
 pip install torch torchvision timm einops opencv-python
 pip install mamba-ssm
 
 ## Acknowledgement
-
-The code organization, as well as parts of the training and testing pipeline, are implemented with reference to the open-source [GeoSeg](https://github.com/WangLibo1995/GeoSeg) project.  
+This repository is built upon PyTorch and partially follows the engineering organization of the open-source [GeoSeg](https://github.com/WangLibo1995/GeoSeg)
+ project.
+The training and testing pipeline of this repository is also implemented with reference to the GeoSeg framework.
 We sincerely thank the GeoSeg authors for making their code publicly available.
-
 
