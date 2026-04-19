@@ -38,52 +38,7 @@ The proposed network adopts a **ConvNeXt-based encoder-decoder framework** and i
 - **HSM**: Hierarchical Spatial Mamba
 - **FGRM**: Fourier-Guided Refinement Module
 
----
 
-## Main Modules
-
-### 1. Frequency-Band State Space (FBSS)
-
-FBSS first performs **Learnable Frequency-Band Decomposition (LFBD)** to generate four subbands:
-
-- `LL`
-- `LH`
-- `HL`
-- `HH`
-
-Then, band-specific semantic-aligned serialization and state space modeling are used to capture ordered cross-band dependencies.
-
-<p align="center">
-  <img src="assets/fbss.png" width="850"/>
-</p>
-
-
----
-
-### 2. Hierarchical Spatial Mamba (HSM)
-
-HSM complements the frequency branch by enhancing spatial structural continuity through:
-
-- region-level propagation
-- pooled global propagation
-
-<p align="center">
-  <img src="assets/hsm.png" width="700"/>
-</p>
-
-
----
-
-### 3. Fourier-Guided Refinement Module (FGRM)
-
-FGRM uses Fourier-domain guidance during decoding to alleviate high-frequency attenuation and improve boundary delineation.
-
-<p align="center">
-  <img src="assets/fgrm.png" width="700"/>
-</p>
-
-
----
 
 ## Repository Structure
 
@@ -92,14 +47,34 @@ FBSNet/
 ├── README.md
 ├── config.py
 ├── models/
-│   └── convnext.py
+│   └── fbsnetbackbone.py
 ├── modules/
 │   ├── fbss.py
 │   ├── hsm.py
 │   └── fgrm.py
 ├── assets/
-│   ├── framework.png
-│   ├── fbss.png
-│   ├── hsm.png
-│   └── fgrm.png
+│   └──  framework.png
+
+## Acknowledgement
+
+This repository is built upon PyTorch and partially follows the engineering organization of the open-source **GeoSeg** project.  
+We thank the GeoSeg authors for making their code publicly available.
+
+```markdown
+## Installation
+
+```bash
+# clone repository
+git clone https://github.com/liye1213/FBSNet.git
+cd FBSNet
+
+# create environment
+conda create -n fbsnet python=3.10 -y
+conda activate fbsnet
+
+# install dependencies
+pip install torch torchvision timm einops opencv-python
+pip install mamba-ssm
+
+
 
